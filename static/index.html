@@ -279,8 +279,8 @@
   <div class="drop-zone" id="dropZone">
     <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf">
     <span class="drop-icon">📄</span>
-    <h2>Drop image here</h2>
-    <p>or click to choose a file · PNG, JPG, TIFF</p>
+    <h2>Drop image or PDF here</h2>
+    <p>or click to choose a file · PNG, JPG, TIFF, PDF</p>
   </div>
 
   <div class="preview-wrap" id="previewWrap">
@@ -315,20 +315,25 @@
   const langSelect = document.getElementById('lang');
 
   let currentFile = null;
+  let isPDF = false;
 
   function setFile(file) {
-    if (!file || !file.type.startsWith('image/')) {
-      setStatus('Please select an image file.', true);
+    if (!file) return;
+    isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+    if (!isPDF && !isImage) {
+      setStatus('Please select an image or PDF file.', true);
       return;
     }
     currentFile = file;
-    const url = URL.createObjectURL(file);
-    preview.src = url;
     previewWrap.style.display = 'block';
     runBtn.style.display = 'block';
     resultWrap.style.display = 'none';
     output.value = '';
-    setStatus('');
+    setStatus(isPDF ? 'PDF selected: ' + file.name : '');
+    if (!isPDF) {
+      preview.src = URL.createObjectURL(file);
+    }
   }
 
   fileInput.addEventListener('change', e => setFile(e.target.files[0]));
@@ -364,14 +369,14 @@
         const res = await fetch('/ocr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, lang: langSelect.value })
+          body: JSON.stringify({ image: base64, lang: langSelect.value, is_pdf: isPDF })
         });
         const data = await res.json();
         output.value = data.text.trim();
         resultWrap.style.display = 'block';
         setStatus('Done.');
       } catch (err) {
-        setStatus('Could not connect to server. Is ocr_server.py running?', true);
+        setStatus('Error connecting to server. Please try again.', true);
       } finally {
         runBtn.disabled = false;
         runBtn.textContent = 'Extract Text';
