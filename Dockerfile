@@ -1,6 +1,7 @@
-FROM python:3.11-slim
+# Use a lightweight Python image
+FROM python:3.10-slim
 
-# Install system dependencies
+# Install system dependencies for OCR and PDF processing
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-aze \
@@ -15,8 +16,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app files
+# Copy application files
+# This will copy the 'static' folder and 'app.py' into the container
 COPY . .
 
-# Run the app
-CMD gunicorn app:app --timeout 300 --workers 1 --bind 0.0.0.0:$PORT
+# Render will pass the PORT environment variable
+ENV PORT=5000
+
+# Start the application using gunicorn for better performance
+CMD gunicorn --bind 0.0.0.0:$PORT app:app
