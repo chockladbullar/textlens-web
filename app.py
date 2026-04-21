@@ -1,80 +1,54 @@
-from flask import Flask, request, Response, send_from_directory
-import json
-import base64
-import tempfile
 import os
-import subprocess
-from pathlib import Path
+import base64
+import io
+from flask import Flask, request, jsonify, send_from_directory
+from PIL import Image
+import pytesseract
+from pdf2image import convert_from_bytes
 
+# We specify 'static' as the folder where your index.html lives
 app = Flask(__name__, static_folder='static')
 
 @app.route('/')
-def index():
+def serve_index():
+    # This tells Flask to look for index.html inside your /static folder
     return send_from_directory('static', 'index.html')
 
 @app.route('/ocr', methods=['POST'])
-def ocr():
-    body = request.get_json()
-    file_data = base64.b64decode(body['image'])
-    lang = body.get('lang', 'aze')
-    is_pdf = body.get('is_pdf', False)
+def ocr_process():
+    try:
+        data = request.get_json()
+        if not data or 'image' not in data:
+            return jsonify({'error': 'No data provided'}), 400
 
-    def generate():
-        all_text = []
+        # Decode base64 data
+        file_bytes = base64.b64decode(data['image'])
+        is_pdf = data.get('is_pdf', False)
+        lang = data.get('lang', 'aze')
+
+        extracted_text = ""
 
         if is_pdf:
+            # Convert PDF pages to images (processing first 5 pages for stability)
             try:
-                from pdf2image import convert_from_bytes
-                yield f"data: {json.dumps({'type': 'status', 'message': 'Converting PDF to images...'})}\n\n"
-                pages = convert_from_bytes(file_data, dpi=200)
-                total = len(pages)
-                yield f"data: {json.dumps({'type': 'total', 'total': total})}\n\n"
-
-                for i, page in enumerate(pages):
-                    yield f"data: {json.dumps({'type': 'progress', 'page': i+1, 'total': total})}\n\n"
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
-                        page.save(f.name, 'PNG')
-                        tmp_path = f.name
-                    out_path = tmp_path + '_out'
-                    try:
-                        subprocess.run(['tesseract', tmp_path, out_path, '-l', lang],
-                                       capture_output=True, text=True)
-                        txt_file = Path(out_path + '.txt')
-                        if txt_file.exists():
-                            text = txt_file.read_text().strip()
-                            if text:
-                                all_text.append(f"--- Page {i+1} ---\n{text}")
-                    finally:
-                        try: os.unlink(tmp_path)
-                        except: pass
-                        try: os.unlink(out_path + '.txt')
-                        except: pass
-            except Exception as e:
-                yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-                return
+                images = convert_from_bytes(file_bytes, first_page=1, last_page=5)
+                for i, img in enumerate(images):
+                    page_text = pytesseract.image_to_string(img, lang=lang)
+                    extracted_text += f"--- Page {i+1} ---\n{page_text}\n\n"
+            except Exception as pdf_err:
+                return jsonify({'error': f'PDF processing failed: {str(pdf_err)}'}), 500
         else:
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Reading image...'})}\n\n"
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
-                f.write(file_data)
-                tmp_path = f.name
-            out_path = tmp_path + '_out'
-            try:
-                subprocess.run(['tesseract', tmp_path, out_path, '-l', lang],
-                               capture_output=True, text=True)
-                txt_file = Path(out_path + '.txt')
-                if txt_file.exists():
-                    all_text.append(txt_file.read_text().strip())
-            finally:
-                try: os.unlink(tmp_path)
-                except: pass
-                try: os.unlink(out_path + '.txt')
-                except: pass
+            # Handle standard image
+            image = Image.open(io.BytesIO(file_bytes))
+            extracted_text = pytesseract.image_to_string(image, lang=lang)
 
-        yield f"data: {json.dumps({'type': 'done', 'text': chr(10).join(all_text)})}\n\n"
+        return jsonify({'text': extracted_text.strip()})
 
-    return Response(generate(), mimetype='text/event-stream',
-                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    # Using the port Render provides, or defaulting to 5000
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
