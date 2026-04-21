@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OCR — Azerbaijani Text Reader</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- jsPDF for exporting results to PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -31,6 +33,7 @@
   header h1 { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 700; }
   header h1 span { color: var(--accent); }
   header p { margin-top: 8px; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  
   .card {
     background: var(--paper);
     border: 1.5px solid var(--border);
@@ -40,6 +43,7 @@
     padding: 32px;
     box-shadow: 4px 4px 0 var(--border);
   }
+  
   .lang-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
   .lang-row label { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); }
   select {
@@ -49,7 +53,9 @@
     border: 1.5px solid var(--border);
     padding: 6px 10px;
     flex: 1;
+    cursor: pointer;
   }
+
   .drop-zone {
     border: 2px dashed var(--border);
     padding: 40px;
@@ -57,9 +63,11 @@
     cursor: pointer;
     background: var(--bg);
     position: relative;
+    transition: background 0.2s;
   }
   .drop-zone.drag-over { border-color: var(--accent); background: #fdf5f4; }
   .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  
   .preview-wrap { margin-top: 20px; display: none; position: relative; text-align: center; }
   .preview-wrap img { width: 100%; max-height: 300px; object-fit: contain; border: 1px solid var(--border); background: white; }
   .pdf-placeholder { padding: 40px; border: 1px solid var(--border); background: #eee; font-size: 3rem; border-radius: 4px; }
@@ -69,19 +77,33 @@
     width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
     z-index: 10;
   }
+
   .progress-container { margin-top: 20px; display: none; }
   .progress-bar-bg { width: 100%; height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .progress-bar-fill { width: 0%; height: 100%; background: var(--progress); transition: width 0.3s ease; }
   .progress-info { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-top: 5px; }
+
+  .btn-group { display: flex; gap: 10px; margin-top: 20px; }
   .run-btn {
-    width: 100%; padding: 15px; background: var(--accent);
-    color: white; border: none; margin-top: 20px;
-    text-transform: uppercase; cursor: pointer; display: none;
-    font-weight: bold;
+    flex: 2; padding: 15px; background: var(--accent);
+    color: white; border: none; text-transform: uppercase; 
+    cursor: pointer; font-weight: bold; display: none;
   }
-  .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .cancel-btn {
+    flex: 1; padding: 15px; background: #eee;
+    color: var(--ink); border: 1.5px solid var(--border);
+    text-transform: uppercase; cursor: pointer; display: none;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
   .result-wrap { margin-top: 30px; display: none; }
-  textarea { width: 100%; min-height: 180px; padding: 15px; background: var(--bg); border: 1.5px solid var(--border); font-family: inherit; line-height: 1.6; }
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .result-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+  .result-actions { display: flex; gap: 10px; }
+  .action-link { font-size: 0.7rem; color: var(--muted); cursor: pointer; text-decoration: underline; text-transform: uppercase; }
+  .action-link:hover { color: var(--accent); }
+  
+  textarea { width: 100%; min-height: 200px; padding: 15px; background: var(--bg); border: 1.5px solid var(--border); font-family: inherit; line-height: 1.6; resize: vertical; }
   .status { margin-top: 15px; font-size: 0.8rem; text-align: center; min-height: 1.2em; }
   .error { color: var(--accent); }
 </style>
@@ -90,7 +112,7 @@
 
 <header>
   <h1>Text<span>Lens</span></h1>
-  <p>Azerbaijani OCR · PDF & Images</p>
+  <p>Azerbaijani OCR · Advanced Extraction</p>
 </header>
 
 <div class="card">
@@ -107,7 +129,7 @@
     <input type="file" id="fileInput" accept="image/*,application/pdf">
     <div class="drop-icon" style="font-size: 2rem; margin-bottom: 10px;">📂</div>
     <h3>Drop Image or PDF</h3>
-    <p>or click to browse documents</p>
+    <p>or click to browse</p>
   </div>
 
   <div class="preview-wrap" id="previewWrap">
@@ -122,17 +144,23 @@
         <div class="progress-bar-fill" id="progressBar"></div>
     </div>
     <div class="progress-info">
-        <span id="progressText">Starting...</span>
+        <span id="progressText">Processing...</span>
         <span id="etaText">ETA: Calculating...</span>
     </div>
   </div>
 
-  <button class="run-btn" id="runBtn">Extract Text</button>
+  <div class="btn-group">
+    <button class="run-btn" id="runBtn">Extract Text</button>
+    <button class="cancel-btn" id="cancelBtn">Cancel</button>
+  </div>
 
   <div class="result-wrap" id="resultWrap">
-    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.7rem; color:var(--muted)">
-        <span>EXTRACTED CONTENT</span>
-        <span id="copyBtn" style="cursor:pointer; text-decoration:underline">COPY TEXT</span>
+    <div class="result-header">
+        <span class="result-label">Extracted Content</span>
+        <div class="result-actions">
+            <span class="action-link" id="copyBtn">Copy Text</span>
+            <span class="action-link" id="pdfBtn">Export PDF</span>
+        </div>
     </div>
     <textarea id="output" spellcheck="false"></textarea>
   </div>
@@ -148,6 +176,7 @@
   const pdfIcon = document.getElementById('pdfIcon');
   const fileNameDisplay = document.getElementById('fileNameDisplay');
   const runBtn = document.getElementById('runBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
   const resultWrap = document.getElementById('resultWrap');
   const output = document.getElementById('output');
   const status = document.getElementById('status');
@@ -158,6 +187,7 @@
 
   let currentFile = null;
   let progressInterval = null;
+  let abortController = null;
 
   function setFile(file) {
     if (!file) return;
@@ -165,8 +195,7 @@
     const isImg = file.type.startsWith('image/');
     
     if (!isPdf && !isImg) {
-        status.textContent = "Please upload a PDF or an Image.";
-        status.className = "status error";
+        setStatus("Please upload a PDF or an Image.", true);
         return;
     }
 
@@ -174,9 +203,10 @@
     fileNameDisplay.textContent = file.name;
     previewWrap.style.display = 'block';
     runBtn.style.display = 'block';
+    cancelBtn.style.display = 'none';
     resultWrap.style.display = 'none';
     progressContainer.style.display = 'none';
-    status.textContent = '';
+    setStatus('');
     
     if (isImg) {
         preview.src = URL.createObjectURL(file);
@@ -197,13 +227,28 @@
     setFile(e.dataTransfer.files[0]);
   };
 
-  document.getElementById('clearBtn').onclick = () => {
+  function clearAll() {
     currentFile = null;
     previewWrap.style.display = 'none';
     runBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
     progressContainer.style.display = 'none';
     fileInput.value = '';
+    setStatus('');
     clearInterval(progressInterval);
+    if (abortController) abortController.abort();
+  }
+
+  document.getElementById('clearBtn').onclick = clearAll;
+
+  cancelBtn.onclick = () => {
+    if (abortController) abortController.abort();
+    setStatus('Process cancelled by user.', false);
+    runBtn.disabled = false;
+    runBtn.textContent = 'Extract Text';
+    cancelBtn.style.display = 'none';
+    clearInterval(progressInterval);
+    progressContainer.style.display = 'none';
   };
 
   function startProgressSimulation() {
@@ -211,16 +256,16 @@
     let progress = 0;
     progressBar.style.width = '0%';
     const fileSizeMB = currentFile.size / (1024 * 1024);
-    let totalEstimatedSeconds = Math.max(5, Math.floor(fileSizeMB * 10));
-    if (currentFile.type === 'application/pdf') totalEstimatedSeconds += 5;
+    let totalEstimatedSeconds = Math.max(6, Math.floor(fileSizeMB * 12));
+    if (currentFile.type === 'application/pdf') totalEstimatedSeconds += 8;
     let secondsLeft = totalEstimatedSeconds;
     
     progressInterval = setInterval(() => {
-        if (progress < 95) {
-            progress += (95 / totalEstimatedSeconds) / 10; 
+        if (progress < 96) {
+            progress += (96 / totalEstimatedSeconds) / 10; 
             secondsLeft -= 0.1;
             progressBar.style.width = progress + '%';
-            progressText.textContent = `Processing (${Math.round(progress)}%)`;
+            progressText.textContent = `Analysing... (${Math.round(progress)}%)`;
             etaText.textContent = `ETA: ~${Math.max(1, Math.ceil(secondsLeft))}s`;
         }
     }, 100);
@@ -229,7 +274,11 @@
   runBtn.onclick = async () => {
     runBtn.disabled = true;
     runBtn.textContent = 'Processing...';
+    cancelBtn.style.display = 'block';
+    setStatus('Uploading and pre-processing...');
+    
     startProgressSimulation();
+    abortController = new AbortController();
 
     const reader = new FileReader();
     reader.onload = async () => {
@@ -242,27 +291,32 @@
             image: base64, 
             lang: document.getElementById('lang').value,
             is_pdf: currentFile.type === 'application/pdf'
-          })
+          }),
+          signal: abortController.signal
         });
+        
         const result = await response.json();
         clearInterval(progressInterval);
         
         if (result.error) {
-            status.textContent = "Error: " + result.error;
-            status.className = 'status error';
-            progressBar.style.width = '0%';
+            setStatus("Error: " + result.error, true);
+            progressContainer.style.display = 'none';
         } else {
             progressBar.style.width = '100%';
             progressText.textContent = 'Completed';
             etaText.textContent = 'ETA: 0s';
             output.value = result.text;
             resultWrap.style.display = 'block';
-            status.textContent = 'Success.';
+            setStatus('Text extracted successfully.');
+            cancelBtn.style.display = 'none';
         }
-      } catch (e) {
+      } catch (err) {
         clearInterval(progressInterval);
-        status.textContent = 'Server Error. Check Render logs.';
-        status.className = 'status error';
+        if (err.name === 'AbortError') {
+            setStatus('Extraction stopped.');
+        } else {
+            setStatus('Server error. Please try again.', true);
+        }
       } finally {
         runBtn.disabled = false;
         runBtn.textContent = 'Extract Text';
@@ -274,9 +328,24 @@
   document.getElementById('copyBtn').onclick = () => {
     output.select();
     document.execCommand('copy');
+    const oldText = document.getElementById('copyBtn').textContent;
     document.getElementById('copyBtn').textContent = 'COPIED!';
-    setTimeout(() => document.getElementById('copyBtn').textContent = 'COPY TEXT', 2000);
+    setTimeout(() => document.getElementById('copyBtn').textContent = oldText, 2000);
   };
+
+  document.getElementById('pdfBtn').onclick = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const margin = 15;
+    const splitText = doc.splitTextToSize(output.value, 180);
+    doc.text(splitText, margin, 20);
+    doc.save(`TextLens_Export_${new Date().getTime()}.pdf`);
+  };
+
+  function setStatus(msg, isError = false) {
+    status.textContent = msg;
+    status.className = 'status' + (isError ? ' error' : '');
+  }
 </script>
 </body>
 </html>
