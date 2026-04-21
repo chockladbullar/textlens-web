@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
     --bg: #f5f0e8;
     --paper: #fffdf7;
@@ -16,8 +15,8 @@
     --accent2: #e8b84b;
     --muted: #8a7f72;
     --border: #d4c9b8;
+    --progress: #27ae60;
   }
-
   body {
     background: var(--bg);
     color: var(--ink);
@@ -28,32 +27,10 @@
     align-items: center;
     padding: 40px 20px;
   }
-
-  header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-
-  header h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.8rem;
-    font-weight: 700;
-    letter-spacing: -1px;
-    line-height: 1;
-  }
-
-  header h1 span {
-    color: var(--accent);
-  }
-
-  header p {
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 0.78rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header p { margin-top: 8px; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; }
   .card {
     background: var(--paper);
     border: 1.5px solid var(--border);
@@ -63,208 +40,58 @@
     padding: 32px;
     box-shadow: 4px 4px 0 var(--border);
   }
-
-  .lang-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .lang-row label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-
+  .lang-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .lang-row label { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); }
   select {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.85rem;
     background: var(--bg);
     border: 1.5px solid var(--border);
-    border-radius: 3px;
     padding: 6px 10px;
-    color: var(--ink);
-    cursor: pointer;
     flex: 1;
   }
-
-  select:focus { outline: 2px solid var(--accent); }
-
   .drop-zone {
     border: 2px dashed var(--border);
-    border-radius: 4px;
-    padding: 48px 24px;
+    padding: 40px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
     background: var(--bg);
-  }
-
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--accent);
-    background: #fdf5f4;
-  }
-
-  .drop-zone input[type=file] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-
-  .drop-icon {
-    font-size: 2.5rem;
-    margin-bottom: 12px;
-    display: block;
-  }
-
-  .drop-zone h2 {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.3rem;
-    font-weight: 400;
-    margin-bottom: 6px;
-  }
-
-  .drop-zone p {
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .preview-wrap {
-    margin-top: 20px;
-    display: none;
     position: relative;
   }
-
-  .preview-wrap img {
-    width: 100%;
-    border-radius: 3px;
-    border: 1.5px solid var(--border);
-    display: block;
-    max-height: 300px;
-    object-fit: contain;
-    background: #eee;
-  }
-
+  .drop-zone.drag-over { border-color: var(--accent); background: #fdf5f4; }
+  .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .preview-wrap { margin-top: 20px; display: none; position: relative; text-align: center; }
+  .preview-wrap img { width: 100%; max-height: 300px; object-fit: contain; border: 1px solid var(--border); background: white; }
+  .pdf-placeholder { padding: 40px; border: 1px solid var(--border); background: #eee; font-size: 3rem; border-radius: 4px; }
   .preview-clear {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
+    position: absolute; top: 10px; right: 10px;
+    background: var(--accent); color: white; border: none;
+    width: 25px; height: 25px; border-radius: 50%; cursor: pointer;
+    z-index: 10;
   }
-
+  .progress-container { margin-top: 20px; display: none; }
+  .progress-bar-bg { width: 100%; height: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .progress-bar-fill { width: 0%; height: 100%; background: var(--progress); transition: width 0.3s ease; }
+  .progress-info { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); margin-top: 5px; }
   .run-btn {
-    margin-top: 20px;
-    width: 100%;
-    padding: 14px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 3px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.9rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    display: none;
+    width: 100%; padding: 15px; background: var(--accent);
+    color: white; border: none; margin-top: 20px;
+    text-transform: uppercase; cursor: pointer; display: none;
+    font-weight: bold;
   }
-
-  .run-btn:hover { background: #a93226; }
-  .run-btn:active { transform: scale(0.99); }
-  .run-btn:disabled { background: var(--muted); cursor: not-allowed; }
-
-  .result-wrap {
-    margin-top: 28px;
-    display: none;
-  }
-
-  .result-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .copy-btn {
-    background: none;
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    padding: 3px 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    cursor: pointer;
-    color: var(--ink);
-    transition: all 0.15s;
-  }
-
-  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  textarea {
-    width: 100%;
-    min-height: 180px;
-    padding: 16px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.88rem;
-    line-height: 1.7;
-    background: var(--bg);
-    border: 1.5px solid var(--border);
-    border-radius: 3px;
-    color: var(--ink);
-    resize: vertical;
-  }
-
-  textarea:focus { outline: 2px solid var(--accent2); }
-
-  .status {
-    margin-top: 12px;
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-align: center;
-    min-height: 18px;
-  }
-
-  .status.error { color: var(--accent); }
-
-  .divider {
-    width: 40px;
-    height: 2px;
-    background: var(--accent);
-    margin: 0 auto 32px;
-  }
+  .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .result-wrap { margin-top: 30px; display: none; }
+  textarea { width: 100%; min-height: 180px; padding: 15px; background: var(--bg); border: 1.5px solid var(--border); font-family: inherit; line-height: 1.6; }
+  .status { margin-top: 15px; font-size: 0.8rem; text-align: center; min-height: 1.2em; }
+  .error { color: var(--accent); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Text<span>Lens</span></h1>
-  <p>Azerbaijani OCR · Powered by Tesseract</p>
+  <p>Azerbaijani OCR · PDF & Images</p>
 </header>
-<div class="divider"></div>
 
 <div class="card">
   <div class="lang-row">
@@ -272,129 +99,184 @@
     <select id="lang">
       <option value="aze">Azerbaijani</option>
       <option value="aze+eng">Azerbaijani + English</option>
-      <option value="eng">English only</option>
+      <option value="eng">English</option>
     </select>
   </div>
 
   <div class="drop-zone" id="dropZone">
-    <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf">
-    <span class="drop-icon">📄</span>
-    <h2>Drop image or PDF here</h2>
-    <p>or click to choose a file · PNG, JPG, TIFF, PDF</p>
+    <input type="file" id="fileInput" accept="image/*,application/pdf">
+    <div class="drop-icon" style="font-size: 2rem; margin-bottom: 10px;">📂</div>
+    <h3>Drop Image or PDF</h3>
+    <p>or click to browse documents</p>
   </div>
 
   <div class="preview-wrap" id="previewWrap">
-    <img id="preview" src="" alt="Preview">
-    <button class="preview-clear" id="clearBtn" title="Remove image">×</button>
+    <div id="pdfIcon" class="pdf-placeholder" style="display:none">📄</div>
+    <img id="preview" src="" style="display:none">
+    <div id="fileNameDisplay" style="margin-top:8px; font-size:0.75rem; color:var(--muted)"></div>
+    <button class="preview-clear" id="clearBtn">×</button>
+  </div>
+
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+    <div class="progress-info">
+        <span id="progressText">Starting...</span>
+        <span id="etaText">ETA: Calculating...</span>
+    </div>
   </div>
 
   <button class="run-btn" id="runBtn">Extract Text</button>
 
   <div class="result-wrap" id="resultWrap">
-    <div class="result-label">
-      <span>Extracted Text</span>
-      <button class="copy-btn" id="copyBtn">Copy</button>
+    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.7rem; color:var(--muted)">
+        <span>EXTRACTED CONTENT</span>
+        <span id="copyBtn" style="cursor:pointer; text-decoration:underline">COPY TEXT</span>
     </div>
-    <textarea id="output" spellcheck="false" placeholder="Text will appear here..."></textarea>
+    <textarea id="output" spellcheck="false"></textarea>
   </div>
 
   <div class="status" id="status"></div>
 </div>
 
 <script>
-  const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
-  const preview = document.getElementById('preview');
+  const dropZone = document.getElementById('dropZone');
   const previewWrap = document.getElementById('previewWrap');
-  const clearBtn = document.getElementById('clearBtn');
+  const preview = document.getElementById('preview');
+  const pdfIcon = document.getElementById('pdfIcon');
+  const fileNameDisplay = document.getElementById('fileNameDisplay');
   const runBtn = document.getElementById('runBtn');
   const resultWrap = document.getElementById('resultWrap');
   const output = document.getElementById('output');
   const status = document.getElementById('status');
-  const copyBtn = document.getElementById('copyBtn');
-  const langSelect = document.getElementById('lang');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const etaText = document.getElementById('etaText');
 
   let currentFile = null;
-  let isPDF = false;
+  let progressInterval = null;
 
   function setFile(file) {
     if (!file) return;
-    isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const isImage = file.type.startsWith('image/');
-    if (!isPDF && !isImage) {
-      setStatus('Please select an image or PDF file.', true);
-      return;
+    const isPdf = file.type === 'application/pdf';
+    const isImg = file.type.startsWith('image/');
+    
+    if (!isPdf && !isImg) {
+        status.textContent = "Please upload a PDF or an Image.";
+        status.className = "status error";
+        return;
     }
+
     currentFile = file;
+    fileNameDisplay.textContent = file.name;
     previewWrap.style.display = 'block';
     runBtn.style.display = 'block';
     resultWrap.style.display = 'none';
-    output.value = '';
-    setStatus(isPDF ? 'PDF selected: ' + file.name : '');
-    if (!isPDF) {
-      preview.src = URL.createObjectURL(file);
+    progressContainer.style.display = 'none';
+    status.textContent = '';
+    
+    if (isImg) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        pdfIcon.style.display = 'none';
+    } else {
+        preview.style.display = 'none';
+        pdfIcon.style.display = 'block';
     }
   }
 
-  fileInput.addEventListener('change', e => setFile(e.target.files[0]));
-
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
+  fileInput.onchange = (e) => setFile(e.target.files[0]);
+  dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); };
+  dropZone.ondragleave = () => dropZone.classList.remove('drag-over');
+  dropZone.ondrop = (e) => {
     e.preventDefault();
     dropZone.classList.remove('drag-over');
     setFile(e.dataTransfer.files[0]);
-  });
+  };
 
-  clearBtn.addEventListener('click', () => {
+  document.getElementById('clearBtn').onclick = () => {
     currentFile = null;
-    preview.src = '';
     previewWrap.style.display = 'none';
     runBtn.style.display = 'none';
-    resultWrap.style.display = 'none';
+    progressContainer.style.display = 'none';
     fileInput.value = '';
-    setStatus('');
-  });
+    clearInterval(progressInterval);
+  };
 
-  runBtn.addEventListener('click', async () => {
-    if (!currentFile) return;
+  function startProgressSimulation() {
+    progressContainer.style.display = 'block';
+    let progress = 0;
+    progressBar.style.width = '0%';
+    const fileSizeMB = currentFile.size / (1024 * 1024);
+    let totalEstimatedSeconds = Math.max(5, Math.floor(fileSizeMB * 10));
+    if (currentFile.type === 'application/pdf') totalEstimatedSeconds += 5;
+    let secondsLeft = totalEstimatedSeconds;
+    
+    progressInterval = setInterval(() => {
+        if (progress < 95) {
+            progress += (95 / totalEstimatedSeconds) / 10; 
+            secondsLeft -= 0.1;
+            progressBar.style.width = progress + '%';
+            progressText.textContent = `Processing (${Math.round(progress)}%)`;
+            etaText.textContent = `ETA: ~${Math.max(1, Math.ceil(secondsLeft))}s`;
+        }
+    }, 100);
+  }
+
+  runBtn.onclick = async () => {
     runBtn.disabled = true;
     runBtn.textContent = 'Processing...';
-    setStatus('Reading image...');
+    startProgressSimulation();
 
     const reader = new FileReader();
-    reader.onload = async e => {
-      const base64 = e.target.result.split(',')[1];
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
       try {
-        const res = await fetch('/ocr', {
+        const response = await fetch('/ocr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, lang: langSelect.value, is_pdf: isPDF })
+          body: JSON.stringify({ 
+            image: base64, 
+            lang: document.getElementById('lang').value,
+            is_pdf: currentFile.type === 'application/pdf'
+          })
         });
-        const data = await res.json();
-        output.value = data.text.trim();
-        resultWrap.style.display = 'block';
-        setStatus('Done.');
-      } catch (err) {
-        setStatus('Error connecting to server. Please try again.', true);
+        const result = await response.json();
+        clearInterval(progressInterval);
+        
+        if (result.error) {
+            status.textContent = "Error: " + result.error;
+            status.className = 'status error';
+            progressBar.style.width = '0%';
+        } else {
+            progressBar.style.width = '100%';
+            progressText.textContent = 'Completed';
+            etaText.textContent = 'ETA: 0s';
+            output.value = result.text;
+            resultWrap.style.display = 'block';
+            status.textContent = 'Success.';
+        }
+      } catch (e) {
+        clearInterval(progressInterval);
+        status.textContent = 'Server Error. Check Render logs.';
+        status.className = 'status error';
       } finally {
         runBtn.disabled = false;
         runBtn.textContent = 'Extract Text';
       }
     };
     reader.readAsDataURL(currentFile);
-  });
+  };
 
-  copyBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(output.value);
-    copyBtn.textContent = 'Copied!';
-    setTimeout(() => copyBtn.textContent = 'Copy', 1500);
-  });
-
-  function setStatus(msg, isError = false) {
-    status.textContent = msg;
-    status.className = 'status' + (isError ? ' error' : '');
-  }
+  document.getElementById('copyBtn').onclick = () => {
+    output.select();
+    document.execCommand('copy');
+    document.getElementById('copyBtn').textContent = 'COPIED!';
+    setTimeout(() => document.getElementById('copyBtn').textContent = 'COPY TEXT', 2000);
+  };
 </script>
 </body>
 </html>
